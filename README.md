@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 # run-from-duo
+=======
+# Run From Duo!
+>>>>>>> 65197a31b27a54e920ca1315068d38777f49ec15
 
 Duolingo but it's VR and he's trying to kidnap you.
 
