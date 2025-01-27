@@ -40,7 +40,6 @@ wss.on("connection", (clientSocket) => {
 
     // Pipe client audio to OpenAI
     inputAudioStream.on("data", (chunk) => {
-      console.log(chunk);
       openAISocket.send({
         type: "input_audio_buffer.append",
         audio: chunk.toString("base64"), // Send audio as base64
@@ -56,7 +55,7 @@ wss.on("connection", (clientSocket) => {
 
   openAISocket.on("response.done", () => {
     console.log("OpenAI audio processing completed");
-    outputAudioStream.end(); // Signal end of processed audio
+    clientSocket.send("END_OF_OUTPUT");
   });
 
   // Handle client messages (audio input)

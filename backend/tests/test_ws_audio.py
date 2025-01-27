@@ -1,80 +1,81 @@
 import asyncio
 import websockets
 import pyaudio
-import wave
 
-HOST = "localhost"
-PORT = 8000
-OUTPUT_FILE = "output.wav"
-
-# Audio config
-INPUT_DEVICE_INDEX = 1
 CHUNK = 1024
 RATE = 44100
-CHANNELS = 1
 FORMAT = pyaudio.paInt16
+CHANNELS = 1
+DEVICE_INDEX = 1
+OUTPUT_FILE = "processed_output.wav"
 
-stop_recording = False
-
-async def record_audio(ws):
-    """Capture mic audio and send it over the WebSocket until user stops."""
-    global stop_recording
+async def record_and_send(websocket):
+    """
+    Records mic data and sends it to the server until user indicates end of speech.
+    """
     p = pyaudio.PyAudio()
+    stream = p.open(
+        format=FORMAT,
+        channels=CHANNELS,
+        rate=RATE,
+        input=True,
+        input_device_index=DEVICE_INDEX,
+        frames_per_buffer=CHUNK
+    )
 
-    stream = p.open(format=FORMAT, channels=CHANNELS, rate=RATE, input=True, frames_per_buffer=CHUNK, input_device_index=INPUT_DEVICE_INDEX)
+    print("Recording... Press ENTER to stop recording.")
+    
+    # We'll run the mic loop in a Task so we can interrupt it easily
+    async def mic_loop():
+        while True:
+            data = stream.read(CHUNK)
+            await websocket.send(data)
 
-    print("Recording... Press Enter/Space to stop.\n")
-    while not stop_recording:
-        data = stream.read(CHUNK, exception_on_overflow=False)
-        print(data)
-        await ws.send(data)
-        await asyncio.sleep(0)  # Allow event loop to handle incoming messages
+    mic_task = asyncio.create_task(mic_loop())
+    
+    # Wait for user to press Enter (blocking call in a thread)
+    loop = asyncio.get_running_loop()
+    await loop.run_in_executor(None, input)
+    
+    # User pressed Enter -> stop mic loop
+    mic_task.cancel()
+    try:
+        await mic_task
+    except asyncio.CancelledError:
+        pass
 
+    # Send END_OF_SPEECH
+    await websocket.send("END_OF_SPEECH")
+    print("Sent END_OF_SPEECH, no more mic data sent.")
+    
     stream.stop_stream()
     stream.close()
     p.terminate()
-    print("Stopped recording. Waiting for server response...")
 
-async def receive_audio(ws):
-    """Receive processed audio from the server and store it in a .wav file."""
-    frames = []
-    try:
-        async for message in ws:
-            frames.append(message)
-    except websockets.ConnectionClosed:
-        pass
-
-    # Write frames to disk
-    if frames:
-        with wave.open(OUTPUT_FILE, 'wb') as wf:
-            wf.setnchannels(CHANNELS)
-            wf.setsampwidth(2)  # 16-bit
-            wf.setframerate(RATE)
-            wf.writeframes(b''.join(frames))
-        print(f"Processed audio saved to: {OUTPUT_FILE}")
+async def receive_and_write(websocket):
+    """
+    Receives audio from the server and writes to a file until server sends END_OF_OUTPUT.
+    """
+    with open(OUTPUT_FILE, 'wb') as f:
+        while True:
+            message = await websocket.recv()
+            
+            if message == "END_OF_OUTPUT":
+                print("Received END_OF_OUTPUT, stopping reception.")
+                break
+            elif isinstance(message, bytes):
+                # It's audio data, write to file
+                f.write(message)
 
 async def main():
-    global stop_recording
-    uri = f"ws://{HOST}:{PORT}"
-    async with websockets.connect(uri) as ws:
-        send_task = asyncio.create_task(record_audio(ws))
-        receive_task = asyncio.create_task(receive_audio(ws))
+    uri = "ws://localhost:8000"
+    async with websockets.connect(uri) as websocket:
+        # Run record_and_send() and receive_and_write() in parallel
+        send_task = asyncio.create_task(record_and_send(websocket))
+        receive_task = asyncio.create_task(receive_and_write(websocket))
 
-        input()  # Block until you press Enter/Space
-        stop_recording = True
-
-        # Wait for the send task to wrap up
-        await send_task
-
-        # Send the "END_OF_SPEECH" marker
-        await ws.send("END_OF_SPEECH")
-
-        # Now close the websocket
-        await ws.close()
-
-        # Finally, wait for any remaining audio from server
-        await receive_task
-
+        # Wait for both tasks to complete
+        await asyncio.gather(send_task, receive_task)
 
 if __name__ == "__main__":
     asyncio.run(main())
