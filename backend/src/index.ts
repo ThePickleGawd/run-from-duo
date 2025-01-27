@@ -1,6 +1,7 @@
 import WebSocket from "ws";
 import { OpenAIRealtimeWS } from "openai/beta/realtime/ws";
 import { PassThrough } from "stream";
+import "dotenv/config";
 import { config } from "./config/defaults";
 
 // Initialize WebSocket server
@@ -28,7 +29,7 @@ wss.on("connection", (clientSocket) => {
     openAISocket.send({
       type: "session.update",
       session: {
-        modalities: ["audio"], // Use audio modality
+        modalities: ["audio", "text"], // Use audio modality
         model: "gpt-4o-realtime-preview",
         instructions: "Respond to me in Chinese. Be brief.",
         input_audio_format: "pcm16",
@@ -39,14 +40,11 @@ wss.on("connection", (clientSocket) => {
 
     // Pipe client audio to OpenAI
     inputAudioStream.on("data", (chunk) => {
+      console.log(chunk);
       openAISocket.send({
         type: "input_audio_buffer.append",
         audio: chunk.toString("base64"), // Send audio as base64
       });
-    });
-
-    inputAudioStream.on("end", () => {
-      openAISocket.send({ type: "input_audio_buffer.commit" }); // Signal end of audio stream
     });
   });
 
@@ -63,7 +61,23 @@ wss.on("connection", (clientSocket) => {
 
   // Handle client messages (audio input)
   clientSocket.on("message", (data) => {
-    inputAudioStream.write(data); // Pipe incoming client audio to inputAudioStream
+    const msg = data.toString();
+
+    if (msg === "END_OF_SPEECH") {
+      console.log("END_OF_SPEECH Received");
+      openAISocket.send({ type: "input_audio_buffer.commit" });
+      openAISocket.send({ type: "input_audio_buffer.clear" });
+    } else {
+      console.log(data);
+      inputAudioStream.write(data); // Pipe incoming client audio to inputAudioStream
+    }
+  });
+
+  // Handle client disconnection
+  clientSocket.on("close", () => {
+    console.log("Client disconnected");
+    inputAudioStream.end(); // End input stream
+    openAISocket.close(); // Close OpenAI WebSocket
   });
 
   // Pipe processed audio back to the client
@@ -73,14 +87,6 @@ wss.on("connection", (clientSocket) => {
 
   outputAudioStream.on("end", () => {
     console.log("Finished streaming processed audio to client");
-    clientSocket.close(); // Optionally close the client connection
-  });
-
-  // Handle client disconnection
-  clientSocket.on("close", () => {
-    console.log("Client disconnected");
-    inputAudioStream.end(); // End input stream
-    openAISocket.close(); // Close OpenAI WebSocket
   });
 
   // Handle errors
