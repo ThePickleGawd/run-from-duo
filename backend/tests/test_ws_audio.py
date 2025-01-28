@@ -6,7 +6,7 @@ CHUNK = 1024
 RATE = 44100
 FORMAT = pyaudio.paInt16
 CHANNELS = 1
-DEVICE_INDEX = 1
+DEVICE_INDEX = 0
 OUTPUT_FILE = "processed_output.wav"
 
 async def record_and_send(websocket):

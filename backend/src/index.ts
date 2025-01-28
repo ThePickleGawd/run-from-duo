@@ -1,7 +1,6 @@
 import WebSocket from "ws";
 import { OpenAIRealtimeWS } from "openai/beta/realtime/ws";
 import { PassThrough } from "stream";
-import "dotenv/config";
 import { config } from "./config/defaults";
 
 // Initialize WebSocket server
