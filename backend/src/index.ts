@@ -2,6 +2,7 @@ import WebSocket from "ws";
 import { OpenAIRealtimeWS } from "openai/beta/realtime/ws";
 import { PassThrough } from "stream";
 import { config } from "./config/defaults";
+import fs from "fs";
 
 // Initialize WebSocket server
 const wss = new WebSocket.Server({ port: config.port }, () => {
@@ -10,10 +11,7 @@ const wss = new WebSocket.Server({ port: config.port }, () => {
 
 wss.on("connection", (clientSocket) => {
   console.log("Client connected");
-
-  // PassThrough stream to handle audio data from the client
-  const inputAudioStream = new PassThrough();
-  const outputAudioStream = new PassThrough();
+  const outputFileStream = fs.createWriteStream("output_audio.wav");
 
   // Initialize OpenAI WebSocket connection
   const openAISocket = new OpenAIRealtimeWS({
@@ -36,24 +34,24 @@ wss.on("connection", (clientSocket) => {
         turn_detection: undefined,
       },
     });
-
-    // Pipe client audio to OpenAI
-    inputAudioStream.on("data", (chunk) => {
-      openAISocket.send({
-        type: "input_audio_buffer.append",
-        audio: chunk.toString("base64"), // Send audio as base64
-      });
-    });
   });
 
   // Handle incoming audio from OpenAI
   openAISocket.on("response.audio.delta", (event) => {
+    console.log("response.audio.delta - streaming to client");
     const processedChunk = Buffer.from(event.delta, "base64"); // Decode base64 audio
-    outputAudioStream.write(processedChunk); // Write processed audio to output stream
+    clientSocket.send(processedChunk); // Send to client
+    outputFileStream.write(processedChunk); // Save to file
+  });
+
+  openAISocket.on("input_audio_buffer.committed", (event) => {
+    console.log("Committed!", event);
   });
 
   openAISocket.on("response.done", () => {
-    console.log("OpenAI audio processing completed");
+    console.log("response.done - saving audio and sending END_OF_OUTPUT");
+    outputFileStream.end();
+    openAISocket.send({ type: "input_audio_buffer.clear" });
     clientSocket.send("END_OF_OUTPUT");
   });
 
@@ -65,26 +63,19 @@ wss.on("connection", (clientSocket) => {
       console.log("END_OF_SPEECH Received");
       openAISocket.send({ type: "input_audio_buffer.commit" });
       openAISocket.send({ type: "input_audio_buffer.clear" });
+      openAISocket.send({ type: "response.create" });
     } else {
-      console.log(data);
-      inputAudioStream.write(data); // Pipe incoming client audio to inputAudioStream
+      openAISocket.send({
+        type: "input_audio_buffer.append",
+        audio: data.toString("base64"), // Send audio as base64
+      });
     }
   });
 
   // Handle client disconnection
   clientSocket.on("close", () => {
     console.log("Client disconnected");
-    inputAudioStream.end(); // End input stream
     openAISocket.close(); // Close OpenAI WebSocket
-  });
-
-  // Pipe processed audio back to the client
-  outputAudioStream.on("data", (chunk) => {
-    clientSocket.send(chunk); // Send processed audio chunk to the client
-  });
-
-  outputAudioStream.on("end", () => {
-    console.log("Finished streaming processed audio to client");
   });
 
   // Handle errors

@@ -8,10 +8,11 @@ FORMAT = pyaudio.paInt16
 CHANNELS = 1
 DEVICE_INDEX = 0
 OUTPUT_FILE = "processed_output.wav"
+RECORD_SECONDS = 3  # Duration to record in seconds
 
 async def record_and_send(websocket):
     """
-    Records mic data and sends it to the server until user indicates end of speech.
+    Records mic data and sends it to the server for a fixed duration.
     """
     p = pyaudio.PyAudio()
     stream = p.open(
@@ -23,31 +24,20 @@ async def record_and_send(websocket):
         frames_per_buffer=CHUNK
     )
 
-    print("Recording... Press ENTER to stop recording.")
-    
-    # We'll run the mic loop in a Task so we can interrupt it easily
+    print(f"Recording for {RECORD_SECONDS} seconds...")
+
     async def mic_loop():
-        while True:
+        for _ in range(int(RATE / CHUNK * RECORD_SECONDS)):
             data = stream.read(CHUNK)
             await websocket.send(data)
 
-    mic_task = asyncio.create_task(mic_loop())
-    
-    # Wait for user to press Enter (blocking call in a thread)
-    loop = asyncio.get_running_loop()
-    await loop.run_in_executor(None, input)
-    
-    # User pressed Enter -> stop mic loop
-    mic_task.cancel()
-    try:
-        await mic_task
-    except asyncio.CancelledError:
-        pass
+    await mic_loop()
 
     # Send END_OF_SPEECH
     await websocket.send("END_OF_SPEECH")
     print("Sent END_OF_SPEECH, no more mic data sent.")
     
+    # Close mic audio
     stream.stop_stream()
     stream.close()
     p.terminate()
@@ -59,7 +49,6 @@ async def receive_and_write(websocket):
     with open(OUTPUT_FILE, 'wb') as f:
         while True:
             message = await websocket.recv()
-            
             if message == "END_OF_OUTPUT":
                 print("Received END_OF_OUTPUT, stopping reception.")
                 break
