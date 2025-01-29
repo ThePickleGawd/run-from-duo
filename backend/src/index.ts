@@ -3,6 +3,7 @@ import { OpenAIRealtimeWS } from "openai/beta/realtime/ws";
 import { PassThrough } from "stream";
 import { config } from "./config/defaults";
 import fs from "fs";
+import wav from "wav";
 
 // Initialize WebSocket server
 const wss = new WebSocket.Server({ port: config.port }, () => {
@@ -11,7 +12,16 @@ const wss = new WebSocket.Server({ port: config.port }, () => {
 
 wss.on("connection", (clientSocket) => {
   console.log("Client connected");
-  const outputFileStream = fs.createWriteStream("output_audio.wav");
+  const inputFileWriter = new wav.FileWriter("mic_input.wav", {
+    channels: 1,
+    sampleRate: 24000,
+    bitDepth: 16,
+  });
+  const outputFileWriter = new wav.FileWriter("ai_output.wav", {
+    channels: 1,
+    sampleRate: 24000,
+    bitDepth: 16,
+  });
 
   // Initialize OpenAI WebSocket connection
   const openAISocket = new OpenAIRealtimeWS({
@@ -41,7 +51,7 @@ wss.on("connection", (clientSocket) => {
     console.log("response.audio.delta - streaming to client");
     const processedChunk = Buffer.from(event.delta, "base64"); // Decode base64 audio
     clientSocket.send(processedChunk); // Send to client
-    outputFileStream.write(processedChunk); // Save to file
+    outputFileWriter.write(processedChunk); // Save to file
   });
 
   openAISocket.on("input_audio_buffer.committed", (event) => {
@@ -50,7 +60,7 @@ wss.on("connection", (clientSocket) => {
 
   openAISocket.on("response.done", () => {
     console.log("response.done - saving audio and sending END_OF_OUTPUT");
-    outputFileStream.end();
+    outputFileWriter.end();
     openAISocket.send({ type: "input_audio_buffer.clear" });
     clientSocket.send("END_OF_OUTPUT");
   });
@@ -64,11 +74,15 @@ wss.on("connection", (clientSocket) => {
       openAISocket.send({ type: "input_audio_buffer.commit" });
       openAISocket.send({ type: "input_audio_buffer.clear" });
       openAISocket.send({ type: "response.create" });
+
+      inputFileWriter.end();
     } else {
       openAISocket.send({
         type: "input_audio_buffer.append",
         audio: data.toString("base64"), // Send audio as base64
       });
+
+      inputFileWriter.write(data);
     }
   });
 

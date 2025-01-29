@@ -4,7 +4,7 @@ import wave
 # Settings
 FORMAT = pyaudio.paInt16  # 16-bit audio format
 CHANNELS = 1  # Mono input (match your microphone's input channels)
-RATE = 44100  # Sample rate (standard for audio)
+RATE = 24000  # Sample rate (standard for audio)
 CHUNK = 1024  # Buffer size
 RECORD_SECONDS = 5  # Duration of recording
 OUTPUT_FILENAME = "mic_test.wav"  # Output file name

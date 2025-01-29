@@ -2,6 +2,12 @@ import asyncio
 import websockets
 import pyaudio
 
+"""
+Could be useful (Unity to Realtime API):
+https://community.openai.com/t/error-in-committing-input-audio-buffer-because-buffer-has-0ms-of-audio/1032360/3
+"""
+
+
 CHUNK = 1024
 RATE = 44100
 FORMAT = pyaudio.paInt16
@@ -59,6 +65,10 @@ async def receive_and_write(websocket):
 async def main():
     uri = "ws://localhost:8000"
     async with websockets.connect(uri) as websocket:
+        # Wait a few seconds for server to connect to OpenAI
+        print("Waiting 2 seconds for server to connect to OpenAI...")
+        await asyncio.sleep(2)
+
         # Run record_and_send() and receive_and_write() in parallel
         send_task = asyncio.create_task(record_and_send(websocket))
         receive_task = asyncio.create_task(receive_and_write(websocket))
