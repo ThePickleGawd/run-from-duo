@@ -81,7 +81,7 @@ async def receive_and_write(websocket, output_file):
 
 
 async def session(websocket, session_number):
-    output_filename = f"output_{session_number}.wav"
+    output_filename = f"output/output_{session_number}.wav"
     print(f"\nStarting session {session_number} (output file: {output_filename})")
     
     # Run sending and receiving concurrently

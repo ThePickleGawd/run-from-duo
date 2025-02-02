@@ -47,7 +47,7 @@ wss.on("connection", (clientSocket) => {
       session: {
         modalities: ["audio", "text"],
         model: "gpt-4o-realtime-preview",
-        instructions: "Respond to me in Chinese. Be brief.",
+        instructions: config.systemPromt,
         input_audio_format: "pcm16",
         output_audio_format: "pcm16",
         // @ts-ignore
