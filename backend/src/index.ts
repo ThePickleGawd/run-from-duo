@@ -72,7 +72,6 @@ wss.on("connection", (clientSocket) => {
     if (msg === "END_OF_SPEECH") {
       console.log("END_OF_SPEECH Received");
       openAISocket.send({ type: "input_audio_buffer.commit" });
-      openAISocket.send({ type: "input_audio_buffer.clear" });
       openAISocket.send({ type: "response.create" });
 
       inputFileWriter.end();
