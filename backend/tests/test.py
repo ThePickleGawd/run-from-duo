@@ -39,26 +39,46 @@ async def record_and_send(websocket):
 
 async def receive_and_write(websocket, output_file):
     """
-    Receives processed audio data from the server until 'END_OF_OUTPUT'
-    and writes it to a valid WAV file with the proper header.
+    Receives processed audio data from the server until 'END_OF_OUTPUT',
+    writes it to a valid WAV file with the proper header, and plays audio.
     """
-    # Determine sample width from FORMAT
+    import wave
+    import pyaudio
+
+    # Initialize PyAudio
     p = pyaudio.PyAudio()
     sample_width = p.get_sample_size(FORMAT)
+
+    # Set up WAV file for writing
+    wf = wave.open(output_file, 'wb')
+    wf.setnchannels(CHANNELS)
+    wf.setsampwidth(sample_width)
+    wf.setframerate(RATE)
+
+    # Set up audio playback stream
+    stream = p.open(
+        format=FORMAT,
+        channels=CHANNELS,
+        rate=RATE,
+        output=True,
+        frames_per_buffer=CHUNK
+    )
+
+    while True:
+        message = await websocket.recv()
+        if message == "END_OF_OUTPUT":
+            print("Received END_OF_OUTPUT, ending session.")
+            break
+        elif isinstance(message, bytes):
+            # Write to file and play audio
+            wf.writeframes(message)
+            stream.write(message)
+
+    wf.close()
+    stream.stop_stream()
+    stream.close()
     p.terminate()
 
-    with wave.open(output_file, 'wb') as wf:
-        wf.setnchannels(CHANNELS)
-        wf.setsampwidth(sample_width)
-        wf.setframerate(RATE)
-        
-        while True:
-            message = await websocket.recv()
-            if message == "END_OF_OUTPUT":
-                print("Received END_OF_OUTPUT, ending session.")
-                break
-            elif isinstance(message, bytes):
-                wf.writeframes(message)
 
 async def session(websocket, session_number):
     output_filename = f"output_{session_number}.wav"

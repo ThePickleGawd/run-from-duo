@@ -1,97 +1,111 @@
 import WebSocket from "ws";
 import { OpenAIRealtimeWS } from "openai/beta/realtime/ws";
-import { PassThrough } from "stream";
 import { config } from "./config/defaults";
 import fs from "fs";
 import wav from "wav";
 
-// Initialize WebSocket server
 const wss = new WebSocket.Server({ port: config.port }, () => {
   console.log(`WebSocket server running on ws://localhost:${config.port}`);
 });
 
 wss.on("connection", (clientSocket) => {
   console.log("Client connected");
-  const inputFileWriter = new wav.FileWriter("mic_input.wav", {
-    channels: 1,
-    sampleRate: 24000,
-    bitDepth: 16,
-  });
-  const outputFileWriter = new wav.FileWriter("ai_output.wav", {
-    channels: 1,
-    sampleRate: 24000,
-    bitDepth: 16,
-  });
+  let turnCounter = 1;
 
-  // Initialize OpenAI WebSocket connection
+  // Utility to create new file writers for each turn
+  const createWavWriters = (turn: number) => {
+    const inputWriter = new wav.FileWriter(
+      `output/mic_input_turn_${turn}.wav`,
+      {
+        channels: 1,
+        sampleRate: 24000,
+        bitDepth: 16,
+      }
+    );
+    const outputWriter = new wav.FileWriter(
+      `output/ai_output_turn_${turn}.wav`,
+      {
+        channels: 1,
+        sampleRate: 24000,
+        bitDepth: 16,
+      }
+    );
+    return { inputWriter, outputWriter };
+  };
+
+  let { inputWriter, outputWriter } = createWavWriters(turnCounter);
+
+  // Set up the OpenAI connection
   const openAISocket = new OpenAIRealtimeWS({
     model: "gpt-4o-realtime-preview-2024-12-17",
   });
 
-  // Handle OpenAI WebSocket connection
   openAISocket.socket.on("open", () => {
     console.log("Connected to OpenAI WebSocket");
-
-    // Update session for audio processing
     openAISocket.send({
       type: "session.update",
       session: {
-        modalities: ["audio", "text"], // Use audio modality
+        modalities: ["audio", "text"],
         model: "gpt-4o-realtime-preview",
         instructions: "Respond to me in Chinese. Be brief.",
         input_audio_format: "pcm16",
         output_audio_format: "pcm16",
-        turn_detection: undefined,
+        // @ts-ignore
+        turn_detection: null, // This is correct (and the source of a lot of my previous frustration!)
       },
     });
   });
 
-  // Handle incoming audio from OpenAI
+  // Stream audio delta responses back to the client and log them
   openAISocket.on("response.audio.delta", (event) => {
     console.log("response.audio.delta - streaming to client");
-    const processedChunk = Buffer.from(event.delta, "base64"); // Decode base64 audio
-    clientSocket.send(processedChunk); // Send to client
-    outputFileWriter.write(processedChunk); // Save to file
+    const processedChunk = Buffer.from(event.delta, "base64");
+    clientSocket.send(processedChunk);
+    outputWriter.write(processedChunk);
   });
 
+  // Log when input audio is committed
   openAISocket.on("input_audio_buffer.committed", (event) => {
-    console.log("Committed!", event);
+    console.log("Input audio committed:", event);
   });
 
+  // When the response is done, finish up the turn and prepare for the next one
   openAISocket.on("response.done", () => {
-    console.log("response.done - saving audio and sending END_OF_OUTPUT");
-    outputFileWriter.end();
-    openAISocket.send({ type: "input_audio_buffer.clear" });
+    console.log("response.done - finishing current turn");
+    outputWriter.end();
     clientSocket.send("END_OF_OUTPUT");
+
+    // Clear the input buffer and create new file writers for the next turn
+    turnCounter++;
+    ({ inputWriter, outputWriter } = createWavWriters(turnCounter));
   });
 
-  // Handle client messages (audio input)
+  // Handle incoming messages from the client
   clientSocket.on("message", (data) => {
-    const msg = data.toString();
-
-    if (msg === "END_OF_SPEECH") {
-      console.log("END_OF_SPEECH Received");
+    // If we get a string indicating end-of-turn, commit and trigger response generation.
+    if (data.toString() === "END_OF_SPEECH") {
+      console.log("END_OF_SPEECH received for turn", turnCounter);
       openAISocket.send({ type: "input_audio_buffer.commit" });
       openAISocket.send({ type: "response.create" });
-
-      inputFileWriter.end();
-    } else {
+      openAISocket.send({ type: "input_audio_buffer.clear" });
+      inputWriter.end();
+    } else if (Buffer.isBuffer(data)) {
+      // Otherwise, treat it as audio data
       openAISocket.send({
         type: "input_audio_buffer.append",
-        audio: data.toString("base64"), // Send audio as base64
+        audio: data.toString("base64"),
       });
-
-      inputFileWriter.write(data);
+      inputWriter.write(data);
+    } else {
+      console.log("Received unrecognized message:", data);
     }
   });
 
-  // Handle client disconnection
   clientSocket.on("close", () => {
     console.log("Client disconnected");
-    openAISocket.close(); // Close OpenAI WebSocket
+    openAISocket.close();
   });
 
-  // Handle errors
   clientSocket.on("error", (err) => console.error("Client socket error:", err));
   openAISocket.on("error", (err) => console.error("OpenAI socket error:", err));
 });
