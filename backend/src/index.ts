@@ -4,6 +4,20 @@ import { config } from "./config/defaults";
 import fs from "fs";
 import wav from "wav";
 
+/*
+
+Some TODO:
+- Define functions that realtime API can call
+  - ex. setHSK(), addInterests(), createQuiz()
+  - Some will store in persistant game storage, while others may induce an event in Unity
+- System prompt for HSK leveling, if the HSK level is undefined (otherwise base lessons on that)
+
+Potential TODO:
+- Delegate some prompts to GPT-4o, which is a lot cheaper
+- The game itself where you shoot enemies and listen to audio should be GPT-4o, so define HTTP routes here
+  - (The game state should be embedded in prompt so it know what HSK and user interests)
+*/
+
 const wss = new WebSocket.Server({ port: config.port }, () => {
   console.log(`WebSocket server running on ws://localhost:${config.port}`);
 });
