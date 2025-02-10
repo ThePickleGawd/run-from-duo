@@ -9,70 +9,125 @@ using System.Threading.Tasks;
 
 public class WebSocketAudioClient : MonoBehaviour
 {
-    const int CHUNK = 1024;
+    // Audio settings
     const int RATE = 24000;
-    const int RECORD_SECONDS = 3;
     const int CHANNELS = 1;
+    const int CHUNK = 1024; // frames per chunk
 
     ClientWebSocket websocket;
+    AudioSource audioSource;
+
+    // For live playback from received audio
     Queue<float> audioBuffer = new Queue<float>();
     object bufferLock = new object();
 
-    AudioSource audioSource;
+    // For microphone streaming
+    bool isRecording = false;
+    AudioClip micClip;
+    int lastSamplePos = 0;
+    CancellationTokenSource sendCts;
 
     async void Start()
     {
-        // Set up an AudioSource with a streaming AudioClip.
+        // Set up AudioSource with a streaming clip
         audioSource = GetComponent<AudioSource>();
         if (audioSource == null)
             audioSource = gameObject.AddComponent<AudioSource>();
 
-        // Create a streaming clip that lasts 10 seconds (or longer) and use our PCM callback.
-        AudioClip clip = AudioClip.Create("Stream", RATE * 10, CHANNELS, RATE, true, OnAudioRead);
-        audioSource.clip = clip;
+        AudioClip streamClip = AudioClip.Create("Stream", RATE * 10, CHANNELS, RATE, true, OnAudioRead);
+        audioSource.clip = streamClip;
         audioSource.loop = true;
         audioSource.Play();
 
-        // Connect to the WebSocket server.
+        // Connect to the WebSocket server
         websocket = new ClientWebSocket();
         Uri uri = new Uri("ws://localhost:8000");
         await websocket.ConnectAsync(uri, CancellationToken.None);
-        Debug.Log("Connected. Waiting 2 seconds for server setup...");
-        await Task.Delay(2000);
+        Debug.Log("Connected to WebSocket server.");
 
-        int sessionNumber = 1;
-        while (websocket.State == WebSocketState.Open)
+        // Start the continuous receive loop (runs in the background)
+        _ = Task.Run(() => ReceiveLoop());
+    }
+
+    /// <summary>
+    /// Call this when the user presses the button.
+    /// </summary>
+    public void StartSpeech()
+    {
+        if (isRecording) return;
+        Debug.Log("StartSpeech: Starting microphone recording and streaming...");
+        // Start recording – use a long duration with looping enabled
+        micClip = Microphone.Start(null, true, 60, RATE);
+        lastSamplePos = 0;
+        isRecording = true;
+        sendCts = new CancellationTokenSource();
+        _ = Task.Run(() => StreamMicData(sendCts.Token));
+    }
+
+    /// <summary>
+    /// Call this when the user releases the button.
+    /// </summary>
+    public async void StopSpeech()
+    {
+        if (!isRecording) return;
+        Debug.Log("StopSpeech: Stopping microphone recording...");
+        isRecording = false;
+        sendCts.Cancel();
+        Microphone.End(null);
+
+        // Send any leftover samples
+        int currentPos = Microphone.GetPosition(null);
+        if (currentPos > lastSamplePos)
         {
-            // Clear the buffer at the start of each session.
-            lock (bufferLock) audioBuffer.Clear();
-            await Session(sessionNumber);
-            sessionNumber++;
+            float[] samples = new float[currentPos - lastSamplePos];
+            micClip.GetData(samples, lastSamplePos);
+            byte[] pcmBytes = ConvertSamplesToPCM(samples);
+            await websocket.SendAsync(new ArraySegment<byte>(pcmBytes),
+                                      WebSocketMessageType.Binary,
+                                      true,
+                                      CancellationToken.None);
+        }
+
+        // Signal end of speech
+        byte[] endMsg = Encoding.UTF8.GetBytes("END_OF_SPEECH");
+        await websocket.SendAsync(new ArraySegment<byte>(endMsg),
+                                  WebSocketMessageType.Text,
+                                  true,
+                                  CancellationToken.None);
+        Debug.Log("Sent END_OF_SPEECH.");
+    }
+
+    /// <summary>
+    /// Continuously polls the microphone for new data and sends it.
+    /// </summary>
+    async Task StreamMicData(CancellationToken token)
+    {
+        while (!token.IsCancellationRequested)
+        {
+            int pos = Microphone.GetPosition(null);
+            // Handle wrap-around if needed (for very long recordings)
+            if (pos < lastSamplePos)
+                pos = micClip.samples;
+
+            int newSamplesCount = pos - lastSamplePos;
+            if (newSamplesCount > 0)
+            {
+                float[] samples = new float[newSamplesCount];
+                micClip.GetData(samples, lastSamplePos);
+                lastSamplePos = pos;
+
+                byte[] pcmBytes = ConvertSamplesToPCM(samples);
+                await websocket.SendAsync(new ArraySegment<byte>(pcmBytes),
+                                          WebSocketMessageType.Binary,
+                                          true,
+                                          CancellationToken.None);
+            }
+            await Task.Delay(50); // adjust delay to balance latency and CPU usage
         }
     }
 
-    async Task Session(int sessionNumber)
+    byte[] ConvertSamplesToPCM(float[] samples)
     {
-        Debug.Log($"Starting session {sessionNumber}");
-        // Run recording/sending and receiving concurrently.
-        Task sendTask = RecordAndSend();
-        Task receiveTask = ReceiveAndPlay();
-        await Task.WhenAll(sendTask, receiveTask);
-        Debug.Log($"Session {sessionNumber} complete.");
-    }
-
-    async Task RecordAndSend()
-    {
-        Debug.Log($"Recording for {RECORD_SECONDS} seconds...");
-        // Record from the default microphone.
-        AudioClip micClip = Microphone.Start(null, false, RECORD_SECONDS, RATE);
-        while (Microphone.GetPosition(null) <= 0) await Task.Delay(10);
-        await Task.Delay(RECORD_SECONDS * 1000);
-        Microphone.End(null);
-
-        float[] samples = new float[micClip.samples * micClip.channels];
-        micClip.GetData(samples, 0);
-
-        // Convert float samples (-1..1) to 16-bit PCM.
         byte[] pcmBytes = new byte[samples.Length * 2];
         for (int i = 0; i < samples.Length; i++)
         {
@@ -80,36 +135,25 @@ public class WebSocketAudioClient : MonoBehaviour
             byte[] bytes = BitConverter.GetBytes(s);
             Buffer.BlockCopy(bytes, 0, pcmBytes, i * 2, 2);
         }
-
-        // Send PCM data in chunks.
-        int chunkSize = CHUNK * 2;
-        for (int i = 0; i < pcmBytes.Length; i += chunkSize)
-        {
-            int size = Math.Min(chunkSize, pcmBytes.Length - i);
-            byte[] chunk = new byte[size];
-            Array.Copy(pcmBytes, i, chunk, 0, size);
-            await websocket.SendAsync(new ArraySegment<byte>(chunk), WebSocketMessageType.Binary, true, CancellationToken.None);
-        }
-
-        // Signal the end of the speech.
-        byte[] endMessage = Encoding.UTF8.GetBytes("END_OF_SPEECH");
-        await websocket.SendAsync(new ArraySegment<byte>(endMessage), WebSocketMessageType.Text, true, CancellationToken.None);
-        Debug.Log("Sent END_OF_SPEECH.");
+        return pcmBytes;
     }
 
-    async Task ReceiveAndPlay()
+    /// <summary>
+    /// Continuously receives processed audio from the WebSocket and enqueues it.
+    /// </summary>
+    async Task ReceiveLoop()
     {
         byte[] buffer = new byte[CHUNK * 2];
-        while (true)
+        while (websocket.State == WebSocketState.Open)
         {
             var result = await websocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
             if (result.MessageType == WebSocketMessageType.Text)
             {
-                string message = Encoding.UTF8.GetString(buffer, 0, result.Count);
-                if (message == "END_OF_OUTPUT")
+                string msg = Encoding.UTF8.GetString(buffer, 0, result.Count);
+                if (msg == "END_OF_OUTPUT")
                 {
-                    Debug.Log("Received END_OF_OUTPUT, ending session.");
-                    break;
+                    Debug.Log("Received END_OF_OUTPUT.");
+                    continue; // or reset session-specific state if needed
                 }
             }
             else if (result.MessageType == WebSocketMessageType.Binary)
@@ -118,25 +162,27 @@ public class WebSocketAudioClient : MonoBehaviour
                 float[] floatSamples = new float[sampleCount];
                 for (int i = 0; i < sampleCount; i++)
                 {
-                    short sample = BitConverter.ToInt16(buffer, i * 2);
-                    floatSamples[i] = sample / (float)short.MaxValue;
+                    short s = BitConverter.ToInt16(buffer, i * 2);
+                    floatSamples[i] = s / (float)short.MaxValue;
                 }
                 lock (bufferLock)
                 {
-                    foreach (var s in floatSamples)
-                        audioBuffer.Enqueue(s);
+                    foreach (var sample in floatSamples)
+                        audioBuffer.Enqueue(sample);
                 }
             }
         }
     }
 
-    // PCM callback that fills the AudioClip with data from our buffer.
+    /// <summary>
+    /// Called by the streaming AudioClip to fill audio data for playback.
+    /// </summary>
     void OnAudioRead(float[] data)
     {
         lock (bufferLock)
         {
             for (int i = 0; i < data.Length; i++)
-                data[i] = audioBuffer.Count > 0 ? audioBuffer.Dequeue() : 0f;
+                data[i] = (audioBuffer.Count > 0) ? audioBuffer.Dequeue() : 0f;
         }
     }
 }
