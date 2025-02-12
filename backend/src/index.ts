@@ -1,8 +1,8 @@
-import WebSocket from "ws";
-import { OpenAIRealtimeWS } from "openai/beta/realtime/ws";
 import { config } from "./config/defaults";
-import fs from "fs";
-import wav from "wav";
+import express from "express";
+import { setupOpenAIWebSocket } from "@services/openAIService";
+import flashcardsRoutes from "@routes/flashcards";
+import { extractApkg } from "@services/apkgService";
 
 /*
 
@@ -11,6 +11,7 @@ Some TODO:
   - ex. setHSK(), addInterests(), createQuiz()
   - Some will store in persistant game storage, while others may induce an event in Unity
 - System prompt for HSK leveling, if the HSK level is undefined (otherwise base lessons on that)
+- HTTP Methods to fetch cards. Optionally spin up the fetched data by sending it to GPT-4
 
 Potential TODO:
 - Delegate some prompts to GPT-4o, which is a lot cheaper
@@ -18,110 +19,19 @@ Potential TODO:
   - (The game state should be embedded in prompt so it know what HSK and user interests)
 */
 
-const wss = new WebSocket.Server({ port: config.port }, () => {
-  console.log(`WebSocket server running on ws://localhost:${config.port}`);
+// Setup ANKI database
+extractApkg();
+
+// Setup express
+const app = express();
+app.use(express.json());
+
+// Routes
+app.use("/flashcards", flashcardsRoutes);
+
+app.listen(config.httpPort, () => {
+  console.log(`Server running on http://localhost:${config.httpPort}`);
 });
 
-wss.on("connection", (clientSocket) => {
-  console.log("Client connected");
-  let turnCounter = 1;
-
-  // Utility to create new file writers for each turn
-  const createWavWriters = (turn: number) => {
-    const inputWriter = new wav.FileWriter(
-      `output/mic_input_turn_${turn}.wav`,
-      {
-        channels: 1,
-        sampleRate: 24000,
-        bitDepth: 16,
-      }
-    );
-    const outputWriter = new wav.FileWriter(
-      `output/ai_output_turn_${turn}.wav`,
-      {
-        channels: 1,
-        sampleRate: 24000,
-        bitDepth: 16,
-      }
-    );
-    return { inputWriter, outputWriter };
-  };
-
-  let { inputWriter, outputWriter } = createWavWriters(turnCounter);
-
-  // Set up the OpenAI connection
-  const openAISocket = new OpenAIRealtimeWS({
-    model: "gpt-4o-realtime-preview-2024-12-17",
-  });
-
-  openAISocket.socket.on("open", () => {
-    console.log("Connected to OpenAI WebSocket");
-    openAISocket.send({
-      type: "session.update",
-      session: {
-        modalities: ["audio", "text"],
-        model: "gpt-4o-realtime-preview",
-        instructions: config.systemPromt,
-        input_audio_format: "pcm16",
-        output_audio_format: "pcm16",
-        // @ts-ignore
-        turn_detection: null, // This is correct (and the source of a lot of my previous frustration!)
-      },
-    });
-  });
-
-  // Stream audio delta responses back to the client and log them
-  openAISocket.on("response.audio.delta", (event) => {
-    console.log("response.audio.delta - streaming to client");
-    const processedChunk = Buffer.from(event.delta, "base64");
-    clientSocket.send(processedChunk);
-    outputWriter.write(processedChunk);
-  });
-
-  // Log when input audio is committed
-  openAISocket.on("input_audio_buffer.committed", (event) => {
-    console.log("Input audio committed:", event);
-  });
-
-  // When the response is done, finish up the turn and prepare for the next one
-  openAISocket.on("response.done", () => {
-    console.log("response.done - finishing current turn");
-    outputWriter.end();
-    clientSocket.send("END_OF_OUTPUT");
-
-    // Clear the input buffer and create new file writers for the next turn
-    turnCounter++;
-    ({ inputWriter, outputWriter } = createWavWriters(turnCounter));
-  });
-
-  // Handle incoming messages from the client
-  clientSocket.on("message", (data) => {
-    // If we get a string indicating end-of-turn, commit and trigger response generation.
-    if (data.toString() === "END_OF_SPEECH") {
-      console.log("END_OF_SPEECH received for turn", turnCounter);
-      openAISocket.send({ type: "input_audio_buffer.commit" });
-      openAISocket.send({ type: "response.create" });
-      openAISocket.send({ type: "input_audio_buffer.clear" });
-      inputWriter.end();
-    } else if (Buffer.isBuffer(data)) {
-      // Otherwise, treat it as audio data
-      openAISocket.send({
-        type: "input_audio_buffer.append",
-        audio: data.toString("base64"),
-      });
-      inputWriter.write(data);
-    } else {
-      console.log("Received unrecognized message:", data);
-    }
-  });
-
-  clientSocket.on("close", () => {
-    console.log("Client disconnected");
-    openAISocket.close();
-  });
-
-  clientSocket.on("error", (err) => console.error("Client socket error:", err));
-  openAISocket.on("error", (err) => console.error("OpenAI socket error:", err));
-});
-
-console.log("WebSocket server listening for connections...");
+// Setup Realtime ChatGPT API
+setupOpenAIWebSocket(config.webSocketPort, config.systemPrompt);
