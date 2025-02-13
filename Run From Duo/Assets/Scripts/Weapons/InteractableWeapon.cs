@@ -14,6 +14,7 @@ public class InteractableWeapon : MonoBehaviour
 {
   [HideInInspector] public XRSocketInteractor ammoSocket;
   [HideInInspector] public XRGrabInteractable interactable;
+  private Weapon weapon;
 
   private Rigidbody rb;
 
@@ -23,6 +24,7 @@ public class InteractableWeapon : MonoBehaviour
     ammoSocket = GetComponentInChildren<XRSocketInteractor>();
     interactable = GetComponent<XRGrabInteractable>();
     rb = GetComponent<Rigidbody>();
+    weapon = GetComponent<Weapon>();
 
     // Gun listeners
     interactable.hoverEntered.AddListener(args => HoverEnterWeapon());
@@ -38,6 +40,6 @@ public class InteractableWeapon : MonoBehaviour
 
   private void HoverEnterWeapon() { /* XR interaction */ }
   private void HoverExitWeapon() { /* XR interaction */ }
-  private void ActivateWeapon() { }
-  private void DeactivateWeapon() { }
+  private void ActivateWeapon() { if (weapon) weapon.StartFiring(); }
+  private void DeactivateWeapon() { if (weapon) weapon.StopFiring(); }
 }
