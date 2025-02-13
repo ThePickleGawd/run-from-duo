@@ -1,16 +1,15 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 public class PlayerInput : MonoBehaviour
 {
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
-    {
-        
-    }
+    [SerializeReference] private Teacher teacher;
 
-    // Update is called once per frame
-    void Update()
+    [SerializeField] private InputActionReference primaryButtonReference;
+
+    private void Awake()
     {
-        
+        primaryButtonReference.action.performed += _ => teacher.StartTalkToTeacher();
+        primaryButtonReference.action.canceled += _ => teacher.StopTalkToTeacher();
     }
 }
