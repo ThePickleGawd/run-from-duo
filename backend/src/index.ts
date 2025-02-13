@@ -19,9 +19,6 @@ Potential TODO:
   - (The game state should be embedded in prompt so it know what HSK and user interests)
 */
 
-// Setup ANKI database
-extractApkg();
-
 // Setup express
 const app = express();
 app.use(express.json());

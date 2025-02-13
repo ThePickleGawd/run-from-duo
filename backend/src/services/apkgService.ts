@@ -19,7 +19,7 @@ export const extractApkg = async () => {
   }
 };
 
-export const getFlashcards = async (level: string) => {
+export const getFlashcards = async () => {
   if (!fs.existsSync(dbPath)) {
     console.error("Database not found. Run extractApkg() first.");
     return null;
@@ -33,9 +33,21 @@ export const getFlashcards = async (level: string) => {
     const fields = row.flds.split("\x1f"); // Anki fields separator
     return {
       id: row.id,
-      front: fields[0],
-      back: fields[1] || "",
-      promptString: fields[2] || null,
+      hanzi: fields[1] || "", // Chinese character
+      pinyin: fields[3] || "", // Pinyin with tone marks
+      pinyinNumbers: fields[4] || "", // Pinyin with numbers
+      definition: fields[5] || "", // English definition
+      partOfSpeech: fields[6] || "", // Part of speech (e.g., noun, verb)
+      sound: fields[7] || "", // Audio file
+      sentence: fields[10] || "", // Example sentence (simplified)
+      sentenceTraditional: fields[11] || "", // Example sentence (traditional)
+      sentenceBlank: fields[12] || "", // Cloze sentence (simplified)
+      sentenceBlankTraditional: fields[13] || "", // Cloze sentence (traditional)
+      sentencePinyin: fields[14] || "", // Example sentence with pinyin
+      sentencePinyinNumbers: fields[15] || "", // Example sentence with numbered pinyin
+      sentenceEnglish: fields[16] || "", // Example sentence in English
+      sentenceSound: fields[17] || "", // Example sentence audio
+      image: fields[18] || "", // Associated image
     };
   });
 
