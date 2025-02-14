@@ -5,7 +5,7 @@ const router = express.Router();
 
 router.get("/:level", async (req, res) => {
   const level = req.params.level;
-  const cards = await getFlashcards(level);
+  const cards = await getFlashcards(Number(level));
 
   if (cards) {
     res.json(cards);
