@@ -7,6 +7,7 @@ using UnityEngine.XR.Interaction.Toolkit.Interactables;
 [RequireComponent(typeof(OutlineOnHover))]
 public class AmmoCrate : MonoBehaviour
 {
+    public Ammo ammoPrefab;
     private Health health;
     private XRGrabInteractable interactable;
     private Rigidbody rb;
@@ -38,13 +39,12 @@ public class AmmoCrate : MonoBehaviour
 
     private void OnCorrectAnswer()
     {
-        Debug.Log("CORRECT!");
+        Instantiate(ammoPrefab, transform.position, transform.rotation);
         Destroy(gameObject);
     }
 
     private void OnWrongAnswer()
     {
-        Debug.Log("WRONG");
         Destroy(gameObject);
     }
 

@@ -1,7 +1,6 @@
 using UnityEngine;
 using System.Collections;
 using TMPro;
-
 public class Weapon : MonoBehaviour
 {
     [Header("Weapon Setup")]
@@ -9,19 +8,19 @@ public class Weapon : MonoBehaviour
     [SerializeField] private TextMeshProUGUI ammoText;
     [SerializeField] private AudioClip shootSound;
     [SerializeField] private AudioClip shootEmptySound;
+    [SerializeField] private AudioClip reloadSound;
 
     [Header("Weapon Settings")]
     [SerializeField] private bool autoFire = false;
     [SerializeField] private float damage = 10f;
     [SerializeField] private float fireRate = 5f;
-    [SerializeField] private int maxAmmo = 21;
     private float range = 100f;
 
     // Components
     private AudioSource audioSource;
 
     // State
-    private int ammo = 21;
+    [HideInInspector] public Ammo insertedAmmo;
     private bool isFiring = false;
     public bool IsFiring { get { return isFiring; } }
 
@@ -54,7 +53,7 @@ public class Weapon : MonoBehaviour
         do
         {
             PlaySound(shootSound);
-            ammo--;
+            insertedAmmo.ConsumeAmmo();
             UpdateAmmoUI();
 
             RaycastHit hit;
@@ -80,8 +79,15 @@ public class Weapon : MonoBehaviour
 
     public void UpdateAmmoUI()
     {
-        ammoText.text = $"{ammo}/{maxAmmo}";
+        if (insertedAmmo != null)
+        {
+            ammoText.text = $"{insertedAmmo.ammo}/{insertedAmmo.maxAmmo}";
+        }
+        else
+        {
+            ammoText.text = "";
+        }
     }
 
-    public bool CanFire() => ammo > 0;
+    public bool CanFire() => insertedAmmo && !insertedAmmo.IsEmpty();
 }
