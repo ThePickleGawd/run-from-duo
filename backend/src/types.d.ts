@@ -1,0 +1,22 @@
+export type Flashcard = {
+  id: number;
+  simplified: string;
+  traditional: string;
+  pinyin1: string;
+  pinyin2: string;
+  meaning: string;
+  partOfSpeech: string;
+  audio: string;
+  homophone: string;
+  homograph: string;
+  sentenceSimplified: string;
+  sentenceTraditional: string;
+  sentenceSimplifiedCloze: string;
+  sentenceTraditionalCloze: string;
+  sentencePinyin1: string;
+  sentencePinyin2: string;
+  sentenceMeaning: string;
+  sentenceAudio: string;
+  sentenceImage: string;
+  hskLevel: number;
+};

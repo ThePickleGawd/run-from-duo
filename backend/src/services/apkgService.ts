@@ -1,6 +1,7 @@
 import fs from "fs";
 import unzipper from "unzipper";
 import Database from "better-sqlite3";
+import { Flashcard } from "../types";
 
 /*
 HSK1: 1-150
@@ -35,13 +36,13 @@ const getHSKLevel = (index: number) => {
   if (index >= 602 && index <= 1201) return 4;
   if (index >= 1202 && index <= 2501) return 5;
   if (index >= 2502 && index <= 5001) return 6;
-  return null; // Out of range
+  return -1; // Out of range
 };
 
-export const getFlashcards = async (level: number) => {
+export const getFlashcards = async (level: number): Promise<Flashcard[]> => {
   if (!fs.existsSync(dbPath)) {
     console.error("Database not found. Run extractApkg() first.");
-    return null;
+    throw Error("flashcards/HSK.apkg not found");
   }
 
   const db = new Database(dbPath, { readonly: true });
@@ -76,7 +77,7 @@ export const getFlashcards = async (level: number) => {
 
   db.close();
 
-  return level
+  return level !== -1
     ? flashcards.filter((card) => card.hskLevel === level)
     : flashcards;
 };

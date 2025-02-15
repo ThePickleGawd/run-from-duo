@@ -8,7 +8,7 @@ public class Teacher : MonoBehaviour
 
     private void Awake()
     {
-        wsAudioClient = GetComponent<WebSocketAudioClient>();
+        wsAudioClient = GameManager.instance.wsAudioClient;
         audioSource = GetComponent<AudioSource>();
         anim = GetComponent<Animator>();
     }

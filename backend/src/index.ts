@@ -1,7 +1,8 @@
 import { config } from "./config/defaults";
 import express from "express";
 import { setupOpenAIWebSocket } from "@services/openAIService";
-import flashcardsRoutes from "@routes/flashcards";
+import flashcardsRoute from "@routes/flashcards";
+import quizRoute from "@routes/quiz";
 import { extractApkg } from "@services/apkgService";
 
 /*
@@ -24,7 +25,8 @@ const app = express();
 app.use(express.json());
 
 // Routes
-app.use("/flashcards", flashcardsRoutes);
+app.use("/flashcards", flashcardsRoute);
+app.use("/quiz", quizRoute);
 
 app.listen(config.httpPort, () => {
   console.log(`Server running on http://localhost:${config.httpPort}`);
