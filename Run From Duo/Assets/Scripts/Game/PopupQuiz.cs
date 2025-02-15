@@ -1,5 +1,6 @@
 using TMPro;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.UI;
 
 public class PopupQuiz : MonoBehaviour
@@ -7,6 +8,9 @@ public class PopupQuiz : MonoBehaviour
     public TextMeshProUGUI questionText;
     public TextMeshProUGUI[] answerTexts;
     public Button[] answerButtons;
+
+    public UnityEvent OnCorrectAnswer;
+    public UnityEvent OnWrongAnswer;
 
     public void Init(string question, string[] answerPrompts, int correctIdx)
     {
@@ -27,16 +31,13 @@ public class PopupQuiz : MonoBehaviour
 
     private void WrongAnswer()
     {
-        Debug.Log("Wrong answer");
+        OnWrongAnswer?.Invoke();
         Destroy(gameObject);
     }
 
     private void RightAnswer()
     {
-        // TODO: Do something?
-
-        Debug.Log("Correct answer");
-
+        OnCorrectAnswer?.Invoke();
         Destroy(gameObject);
     }
 }

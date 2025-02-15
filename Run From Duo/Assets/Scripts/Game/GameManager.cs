@@ -32,7 +32,7 @@ public class GameManager : MonoBehaviour
         await CreatePopupQuiz(Player.instance.playerQuizPopupParent);
     }
 
-    public async Task CreatePopupQuiz(Transform parent)
+    public async Task<PopupQuiz> CreatePopupQuiz(Transform parent)
     {
         QuizData quizData = await httpClient.RequestQuizData(1);
 
@@ -58,7 +58,11 @@ public class GameManager : MonoBehaviour
 
             // Initialize the quiz popup
             popup.Init(quizData.prompt, answerPrompts, correctIdx);
+
+            return popup;
         }
+
+        return null;
     }
 
     public void UpdateBaseURLFromDropdown(TMPro.TMP_Dropdown dropdown)
