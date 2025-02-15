@@ -27,7 +27,7 @@ public class WebSocketAudioClient : MonoBehaviour
     int lastSamplePos = 0;
     CancellationTokenSource sendCts;
 
-    async void Start()
+    private async void Start()
     {
         // Set up AudioSource with a streaming clip
         audioSource = GetComponent<AudioSource>();
@@ -39,6 +39,18 @@ public class WebSocketAudioClient : MonoBehaviour
         audioSource.loop = true;
         audioSource.Play();
 
+        await Connect();
+    }
+
+
+    public async Task ResetConnection()
+    {
+        await Disconnect();
+        await Connect();
+    }
+
+    public async Task Connect()
+    {
         // Connect to the WebSocket server
         websocket = new ClientWebSocket();
         Uri uri = new Uri($"ws://{GameManager.instance.baseURL}:8000");
@@ -48,6 +60,30 @@ public class WebSocketAudioClient : MonoBehaviour
         // Start the continuous receive loop (runs in the background)
         _ = Task.Run(() => ReceiveLoop());
     }
+
+    public async Task Disconnect()
+    {
+        if (websocket == null || websocket.State != WebSocketState.Open)
+        {
+            Debug.Log("WebSocket is already closed or not initialized.");
+            return;
+        }
+
+        Debug.Log("Disconnecting WebSocket...");
+
+        try
+        {
+            await websocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Client disconnecting", CancellationToken.None);
+            websocket.Dispose();
+            websocket = null;
+            Debug.Log("WebSocket disconnected.");
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"Error while disconnecting WebSocket: {e.Message}");
+        }
+    }
+
 
     /// <summary>
     /// Call this when the user presses the button.

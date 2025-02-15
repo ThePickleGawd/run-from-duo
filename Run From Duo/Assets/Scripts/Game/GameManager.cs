@@ -60,4 +60,11 @@ public class GameManager : MonoBehaviour
             popup.Init(quizData.prompt, answerPrompts, correctIdx);
         }
     }
+
+    public void UpdateBaseURLFromDropdown(TMPro.TMP_Dropdown dropdown)
+    {
+        baseURL = dropdown.options[dropdown.value].text;
+        _ = wsAudioClient.ResetConnection();
+    }
+
 }
