@@ -13,10 +13,14 @@ public class Player : MonoBehaviour
         }
     }
     private static Player playerInstance;
+    [HideInInspector] public Health health;
     public Transform playerQuizPopupParent;
 
     private void Awake()
     {
+        health = GetComponent<Health>();
+        health.OnDeath.AddListener(GameManager.instance.ResetGame);
+
         DontDestroyOnLoad(gameObject);
     }
 }

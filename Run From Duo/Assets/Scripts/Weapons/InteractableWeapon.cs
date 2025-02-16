@@ -41,28 +41,13 @@ public class InteractableWeapon : MonoBehaviour
 
   private void Start()
   {
-    SpawnInsertedAmmo();
-    rb.linearVelocity = Vector3.zero;
+
   }
 
   private void HoverEnterWeapon() { /* XR interaction */ }
   private void HoverExitWeapon() { /* XR interaction */ }
   private void ActivateWeapon() => weapon.StartFiring();
   private void DeactivateWeapon() => weapon.StopFiring();
-
-  public void SpawnInsertedAmmo()
-  {
-    if (weapon.insertedAmmo != null)
-    {
-      Destroy(weapon.insertedAmmo.gameObject);
-    }
-
-    // Spawn Ammo
-    Ammo spawnedAmmo = Instantiate(ammoPrefab, ammoSocket.transform.position, Quaternion.identity);
-
-    // Bottom doesn't work but I thought it should lol
-    // ammoSocket.interactionManager.SelectEnter((IXRSelectInteractor)ammoSocket, spawnedAmmo.GetComponent<XRGrabInteractable>());
-  }
 
   public void OnAmmoInsert(SelectEnterEventArgs args)
   {

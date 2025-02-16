@@ -1,5 +1,7 @@
 using System.Threading.Tasks;
+using Unity.Mathematics;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class GameManager : MonoBehaviour
 {
@@ -16,6 +18,7 @@ public class GameManager : MonoBehaviour
     private static GameManager _instance;
 
     public PopupQuiz popupQuizPrefab;
+    public AmmoCrate ammoCratePrefab;
     public string baseURL = "localhost";
 
     [HideInInspector] public WebSocketAudioClient wsAudioClient;
@@ -27,10 +30,6 @@ public class GameManager : MonoBehaviour
         httpClient = GetComponent<HTTPClient>();
     }
 
-    private async void Start()
-    {
-        await CreatePopupQuiz(Player.instance.playerQuizPopupParent);
-    }
 
     public async Task<PopupQuiz> CreatePopupQuiz(Transform parent)
     {
@@ -71,4 +70,13 @@ public class GameManager : MonoBehaviour
         _ = wsAudioClient.ResetConnection();
     }
 
+    public void ResetGame()
+    {
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+    }
+
+    public void SpawnAmmoCrate(Vector3 pos)
+    {
+        Instantiate(ammoCratePrefab, pos, Quaternion.identity);
+    }
 }
