@@ -2,8 +2,13 @@ import WebSocket from "ws";
 import { OpenAIRealtimeWS } from "openai/beta/realtime/ws";
 import fs from "fs";
 import wav from "wav";
+import { SessionUpdateEvent } from "openai/resources/beta/realtime/realtime";
 
-export const setupOpenAIWebSocket = (port: number, systemPrompt: string) => {
+export const setupOpenAIWebSocket = (
+  port: number,
+  systemPrompt: string,
+  openAITools: SessionUpdateEvent.Session.Tool[]
+) => {
   const wss = new WebSocket.Server({ port: port }, () => {
     console.log(`WebSocket server running on ws://localhost:${port}`);
   });
@@ -52,6 +57,8 @@ export const setupOpenAIWebSocket = (port: number, systemPrompt: string) => {
           output_audio_format: "pcm16",
           // @ts-ignore
           turn_detection: null, // This is correct (and the source of a lot of my previous frustration!)
+          tools: openAITools,
+          tool_choice: "auto",
         },
       });
     });
@@ -70,8 +77,21 @@ export const setupOpenAIWebSocket = (port: number, systemPrompt: string) => {
     });
 
     // When the response is done, finish up the turn and prepare for the next one
-    openAISocket.on("response.done", () => {
+    openAISocket.on("response.done", (event) => {
       console.log("response.done - finishing current turn");
+
+      console.log(event.response.output);
+
+      // Check for function call
+      if (event.response.output) {
+        for (const item of event.response.output) {
+          if (item.type === "function_call") {
+            const payload = JSON.stringify(item);
+            clientSocket.send(payload); // Send payload to Unity VR
+          }
+        }
+      }
+
       outputWriter.end();
       clientSocket.send("END_OF_OUTPUT");
 

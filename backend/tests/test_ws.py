@@ -2,6 +2,7 @@ import asyncio
 import websockets
 import pyaudio
 import wave
+import json
 
 CHUNK = 1024
 RATE = 24000
@@ -42,8 +43,6 @@ async def receive_and_write(websocket, output_file):
     Receives processed audio data from the server until 'END_OF_OUTPUT',
     writes it to a valid WAV file with the proper header, and plays audio.
     """
-    import wave
-    import pyaudio
 
     # Initialize PyAudio
     p = pyaudio.PyAudio()
@@ -69,10 +68,18 @@ async def receive_and_write(websocket, output_file):
         if message == "END_OF_OUTPUT":
             print("Received END_OF_OUTPUT, ending session.")
             break
-        elif isinstance(message, bytes):
+
+        if isinstance(message, bytes):
             # Write to file and play audio
             wf.writeframes(message)
             stream.write(message)
+        else:
+            try:
+                data = json.loads(message)
+                print("Receive function call:", data)
+            except:
+                print("Error receiving json")
+
 
     wf.close()
     stream.stop_stream()

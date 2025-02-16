@@ -33,4 +33,8 @@ app.listen(config.httpPort, () => {
 });
 
 // Setup Realtime ChatGPT API
-setupOpenAIWebSocket(config.webSocketPort, config.systemPrompt);
+setupOpenAIWebSocket(
+  config.webSocketPort,
+  config.systemPrompt,
+  config.openAITools
+);
