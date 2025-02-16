@@ -32,6 +32,7 @@ public class InteractableWeapon : MonoBehaviour
     interactable.hoverExited.AddListener(args => HoverExitWeapon());
     interactable.activated.AddListener(args => ActivateWeapon());
     interactable.deactivated.AddListener(args => DeactivateWeapon());
+    interactable.selectExited.AddListener(args => DeactivateWeapon());
 
     // Ammo socket
     ammoSocket.selectEntered.AddListener(OnAmmoInsert);

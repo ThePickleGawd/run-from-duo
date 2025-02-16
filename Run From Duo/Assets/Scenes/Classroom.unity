@@ -30642,7 +30642,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6507499350661501903, guid: f47ad6ac315a3ea428b59e2cac6f2a2e, type: 3}
       propertyPath: m_Options.m_Options.Array.data[2].m_Text
-      value: 10.0.0.1
+      value: 169.231.54.168
       objectReference: {fileID: 0}
     - target: {fileID: 6507499350661501903, guid: f47ad6ac315a3ea428b59e2cac6f2a2e, type: 3}
       propertyPath: m_OnValueChanged.m_PersistentCalls.m_Calls.Array.size
@@ -64858,6 +64858,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: AR_01 Weapon
       objectReference: {fileID: 0}
+    - target: {fileID: 4410824673002946782, guid: 8619c88bf69b8b643ae017dcf6652505, type: 3}
+      propertyPath: m_Size.y
+      value: 0.18116486
+      objectReference: {fileID: 0}
+    - target: {fileID: 4410824673002946782, guid: 8619c88bf69b8b643ae017dcf6652505, type: 3}
+      propertyPath: m_Center.y
+      value: 0.021190941
+      objectReference: {fileID: 0}
     - target: {fileID: 5005320439686758220, guid: 8619c88bf69b8b643ae017dcf6652505, type: 3}
       propertyPath: m_LocalPosition.x
       value: 168.18097
@@ -68478,7 +68486,7 @@ MonoBehaviour:
   m_AimTargetObject: {fileID: 0}
   m_PhysicsLayerMask:
     serializedVersion: 2
-    m_Bits: 1
+    m_Bits: 193
   m_PhysicsTriggerInteraction: 1
   m_CastRadius: 0.1
 --- !u!137 &4460051143340486591
@@ -74856,7 +74864,7 @@ MonoBehaviour:
   m_AimTargetObject: {fileID: 0}
   m_PhysicsLayerMask:
     serializedVersion: 2
-    m_Bits: 1
+    m_Bits: 193
   m_PhysicsTriggerInteraction: 1
   m_CastRadius: 0.1
 --- !u!114 &6724742380046566782
@@ -75782,10 +75790,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
-    - target: {fileID: 3819063730569521914, guid: 872801d35912b8d4eb3f62b5a4bdc2d1, type: 3}
-      propertyPath: m_FarAttachMode
-      value: 1
-      objectReference: {fileID: 0}
     - target: {fileID: 3841263824604155278, guid: 872801d35912b8d4eb3f62b5a4bdc2d1, type: 3}
       propertyPath: m_LocalPosition.x
       value: 168.04976
