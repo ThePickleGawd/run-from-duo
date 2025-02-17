@@ -6,6 +6,7 @@ using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 
 public class WebSocketAudioClient : MonoBehaviour
 {
@@ -189,8 +190,34 @@ public class WebSocketAudioClient : MonoBehaviour
                 if (msg == "END_OF_OUTPUT")
                 {
                     Debug.Log("Received END_OF_OUTPUT.");
-                    continue; // or reset session-specific state if needed
+
+                    // TODO: Don't allow speaking unti it's done
+                    continue;
                 }
+
+                try
+                {
+                    var response = JsonConvert.DeserializeObject<FunctionCallResponse>(msg);
+
+                    if (response.type == "function_call")
+                    {
+                        if (response.name == "reward_player")
+                        {
+                            // Deserialize the stringified JSON inside "arguments"
+                            var argumentsJson = JsonConvert.DeserializeObject<FunctionArguments>(response.arguments);
+
+                            Debug.Log($"Rewarding player with: {argumentsJson.reward}");
+
+                            // Reward player on the Main Thread
+                            StartCoroutine(GameManager.instance.RewardPlayer(argumentsJson.reward));
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"Failed to parse JSON message: {ex.Message}");
+                }
+
             }
             else if (result.MessageType == WebSocketMessageType.Binary)
             {

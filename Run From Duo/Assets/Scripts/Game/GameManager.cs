@@ -1,3 +1,5 @@
+using System.Collections;
+using System.ComponentModel;
 using System.Threading.Tasks;
 using Unity.Mathematics;
 using UnityEngine;
@@ -73,6 +75,14 @@ public class GameManager : MonoBehaviour
     public void ResetGame()
     {
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+    }
+
+    public IEnumerator RewardPlayer(string type)
+    {
+        yield return null; // Need to run on main thread
+
+        if (type == "ammo") SpawnAmmoCrate(Player.instance.transform.position);
+        else Debug.Log($"{type} not supported yet");
     }
 
     public void SpawnAmmoCrate(Vector3 pos)
