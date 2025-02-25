@@ -1,3 +1,5 @@
+Look at `index.ts` for server setup.
+
 Some conventions:
 
 - END_OF_SPEECH: Unity VR sends to Node.js
