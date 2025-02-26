@@ -16,6 +16,14 @@ Ensure you have `Node.js` installed (tested with v22.11.0).
 
 In the release section, download `HSK.apkg` and move it to `backend/flashcards/HSK.apkg`. Running the server will automatically extract it's contents.
 
+You'll also need to create a `.env` file in the backend base directory with an OpenAI API key.
+
+```.env
+OPENAI_API_KEY=<YOUR KEY HERE>
+```
+
+Run the server
+
 ```bash
 cd backend
 
@@ -24,6 +32,22 @@ npm install
 
 # Run local server
 npm run dev
+```
+
+To test the backend, there are some small Python files to play with. Make sure you're server is running on localhost.
+
+```bash
+cd backend/tests
+
+# Optionally create a .venv file
+python -m venv .venv
+pip install websockets pyaudio
+
+# Print microphone settings (useful to debugging the following script)
+python test_mic.py
+
+# Talk to backend with websockets. Talk for 2 seconds at a time. Make sure mic index is correct in code.
+python test_ws.py
 ```
 
 ## Unity VR
