@@ -34,7 +34,7 @@ npm install
 npm run dev
 ```
 
-To test the backend, there are some small Python files to play with. Make sure you're server is running on localhost.
+To test the backend, there are some small Python files to play with. Make sure you're server is running on localhost. Try asking Duo for some ammo or weapons.
 
 ```bash
 cd backend/tests
