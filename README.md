@@ -59,5 +59,6 @@ To build the game and load it to your Meta Quest VR headset:
 1. Connect headset via USB to your computer
 2. Open the build menu (`File->Build Settings`). Change Build Target to Android
 3. Click the `Build and Run` button on the bottom right of the build menu
+4. IMPORTANT: In GameManager.cs, set the base url of your backend server.
 
 Alternatively, the `.apk` file will soon be published to the release section. You can look up how to sideload it onto your VR headset.
