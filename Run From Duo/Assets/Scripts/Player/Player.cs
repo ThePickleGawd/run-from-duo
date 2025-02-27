@@ -20,7 +20,5 @@ public class Player : MonoBehaviour
     {
         health = GetComponent<Health>();
         health.OnDeath.AddListener(GameManager.instance.ResetGame);
-
-        DontDestroyOnLoad(gameObject);
     }
 }

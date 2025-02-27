@@ -22585,6 +22585,7 @@ GameObject:
   - component: {fileID: 828943048}
   - component: {fileID: 828943051}
   - component: {fileID: 828943050}
+  - component: {fileID: 828943052}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Untagged
@@ -22648,6 +22649,23 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b6838c8b814622d42b06047eec1276f3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &828943052
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 828943047}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7457e5ded2eb46a4c828383b8e820001, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  zombiePrefab: {fileID: 4613944527738537475, guid: 78381d77623d942f4956c84a36648518, type: 3}
+  spawnAreaMin: {x: 203, y: 0, z: 51.67}
+  spawnAreaMax: {x: 104.4, y: 0, z: 69}
+  spawnInterval: 3
+  spawnHeight: 0
 --- !u!1001 &834638847
 PrefabInstance:
   m_ObjectHideFlags: 0
