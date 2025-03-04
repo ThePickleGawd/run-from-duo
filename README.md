@@ -2,6 +2,8 @@
 
 It's Duolingo but there's a zombie outbreak in town! Use Chinese to find the green bird behind this mayhem, and perhaps you'll discover the key to saving everyone. And wait, Duo can talk?
 
+[![Watch the Demo](https://img.youtube.com/vi/EEfnGCmj86o/0.jpg)](https://youtu.be/EEfnGCmj86o)
+
 ## Tech Stack
 
 - Node.js backend with HTTP and WebSocket endpoints.
