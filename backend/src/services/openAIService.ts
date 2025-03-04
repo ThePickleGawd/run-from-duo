@@ -52,6 +52,7 @@ export const setupOpenAIWebSocket = (
         session: {
           modalities: ["audio", "text"],
           model: "gpt-4o-realtime-preview",
+          voice: "sage",
           instructions: systemPrompt,
           input_audio_format: "pcm16",
           output_audio_format: "pcm16",

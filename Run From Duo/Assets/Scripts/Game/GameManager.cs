@@ -21,6 +21,8 @@ public class GameManager : MonoBehaviour
 
     public PopupQuiz popupQuizPrefab;
     public AmmoCrate ammoCratePrefab;
+    public Ammo ammoPrefab;
+    public Weapon weaponPrefab;
     public string baseURL = "localhost";
 
     [HideInInspector] public WebSocketAudioClient wsAudioClient;
@@ -81,12 +83,25 @@ public class GameManager : MonoBehaviour
     {
         yield return null; // Need to run on main thread
 
-        if (type == "ammo") SpawnAmmoCrate(Player.instance.transform.position);
+        if (type == "ammo") SpawnAmmo(Player.instance.transform.position);
+        if (type == "primary weapon") SpawnWeapon(Player.instance.transform.position);
+        if (type == "secondary weapon") SpawnWeapon(Player.instance.transform.position);
+        if (type == "item") SpawnAmmo(Player.instance.transform.position);
         else Debug.Log($"{type} not supported yet");
     }
 
     public void SpawnAmmoCrate(Vector3 pos)
     {
         Instantiate(ammoCratePrefab, pos, Quaternion.identity);
+    }
+
+    public void SpawnAmmo(Vector3 pos)
+    {
+        Instantiate(ammoPrefab, pos, Quaternion.identity);
+    }
+
+    public void SpawnWeapon(Vector3 pos)
+    {
+        Instantiate(weaponPrefab, pos, Quaternion.identity);
     }
 }

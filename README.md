@@ -14,7 +14,7 @@ It's Duolingo but there's a zombie outbreak in town! Use Chinese to find the gre
 
 Ensure you have `Node.js` installed (tested with v22.11.0).
 
-In the release section, download `HSK.apkg` and move it to `backend/flashcards/HSK.apkg`. Running the server will automatically extract it's contents.
+In the release section, download [`HSK.apkg`](https://github.com/ThePickleGawd/run-from-duo/releases/tag/hsk) and move it to `backend/flashcards/HSK.apkg`. Running the server will automatically extract it's contents.
 
 You'll also need to create a `.env` file in the backend base directory with an OpenAI API key.
 
@@ -61,4 +61,4 @@ To build the game and load it to your Meta Quest VR headset:
 3. Click the `Build and Run` button on the bottom right of the build menu
 4. IMPORTANT: In GameManager.cs, set the base url of your backend server.
 
-Alternatively, the `.apk` file will soon be published to the release section. You can look up how to sideload it onto your VR headset.
+Alternatively, sideload the [`game.apk`](https://github.com/ThePickleGawd/run-from-duo/releases/tag/apk) file in the release section. You can look up how to sideload it onto your VR headset.
