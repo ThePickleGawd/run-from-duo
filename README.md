@@ -16,7 +16,7 @@ Survive through multiple waves of zombies. You will start in a safe room with no
 
 Hold `A` on the Quest 2 controller to talk to Duo.
 
-![demo](./docs/demo.gif)
+![demo](./docs/demo-smaller.gif)
 
 You can point at an object and hold the grab button to equip it. Guns must have an ammo inserted in them to fire. There is a ammo slot on all guns.
 
