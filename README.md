@@ -9,11 +9,14 @@ It's Duolingo but there's a zombie outbreak in town! Use Chinese to find the gre
 ## The Game
 
 Survive through multiple waves of zombies. You will start in a safe room with no items, but you may ask Duo for the following:
+
 - Guns
 - Ammo
 - (More items to come)
 
 Hold `A` on the Quest 2 controller to talk to Duo.
+
+![demo](./docs/demo.gif)
 
 You can point at an object and hold the grab button to equip it. Guns must have an ammo inserted in them to fire. There is a ammo slot on all guns.
 
